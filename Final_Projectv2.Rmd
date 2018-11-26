@@ -1,0 +1,90 @@
+---
+title: "Final Project: Midterm Election Results - Sentiment Analysis Using Twitter's API"
+author: "B. Sosnovski, E. Azrilyan and R. Mercier"
+date: "11/23/2018"
+output:
+  prettydoc::html_pretty:
+    theme: architect
+    highlight: github
+    section: TRUE
+---
+
+```{r, echo=TRUE, results='asis'}
+#knitr::kable(head(iris, 10))
+```
+
+## Project Description: 
+
+Sentiment analysis on the primary election results using Twitter data.
+
+**Members:** B. Sosnovski, E. Azrilyan and R. Mercier
+
+**Motivation:** Sentiment analysis plays an important role during elections. Political strategists can use the public’s opinions, emotions, attitudes, etc., to convert them into votes in 2020.
+Can we use the public’s sentiment to determine which political party has the upper hand in the next election?
+Data: To conduct our analysis we will harvest data using Twitter and Facebook’s APIs. Data will be restricted to a certain date range and geographic region. 
+
+**Work Flow:** 
+
+1. Fetch, clean and tokenize the data.
+2. Perform feature selection to keep only the n-grams (most likely bigrams) that are meaningful for an analysis.
+3. Classify results as positive, negative and neutral. At this phase of the project, we not sure yet what type of analysis to perform. A possible analysis that can be performed is one of the  following:
+
+   + Counting and correlating pairs of words.
+   + Build predictive models using logistic regression to predict the probability of occurrence of an event.
+   + Probabilistic topic model using Latent Dirichlet Allocation (LDA) method to be applied for reading general tendency from FB/Twitter posts or comments into certain topics that can be classified toward positive and negative sentiment.
+   
+**Tools:**
+
++ Tweeter Premium Search API - 30-day endpoint (Sandbox), which provides Tweets from the previous 30 days.
++ R Packages
+
+## Load Libraries
+```{r}
+library(rtweet)
+
+
+```
+
+## API's Information
+
+Read key, key secret, access token and and access token secret from a text file.
+
+```{r}
+api <- read.table("Twitter_API_Key.txt", header = TRUE, stringsAsFactors = FALSE)
+names(api)
+dim(api)
+App_Name <- api$app_name
+Consumer_Key <- api$key
+Consumer_Secret <- api$secret_Key
+Access_Token <- api$access_token
+Access_Secret <- api$access_token_secret
+```
+
+Using access token method: create token and save it as an environment variable.
+```{r}
+twitter_token <- create_token(
+  app = App_Name,
+  consumer_key = Consumer_Key,
+  consumer_secret = Consumer_Secret,
+  access_token = Access_Token,
+  access_secret = Access_Secret)
+
+# check to see if the token is loaded
+twitter_token
+get_token()
+
+```
+
+Test if it is possible to get a tweet from one user.
+
+```{r}
+#test<- get_timeline(user = "BiancaSosnovski", n = 1)
+#test
+rl <- rate_limit()
+write_as_csv(rl,"rate_limit.csv", fileEncoding = "UTF-8")
+```
+
+
+## Reference
+
+Michael W. Kearney, 2018. "rtweet: Collecting Twitter Data."  R package version 0.6.7. <https://cran.r-project.org/package=rtweet>
