@@ -1,0 +1,104 @@
+---
+title: "Final Project: Midterm Election Results - Sentiment Analysis Using Twitter's API"
+author: "B. Sosnovski, E. Azrilyan and R. Mercier"
+date: "11/23/2018"
+output:
+  prettydoc::html_pretty:
+    theme: architect
+    highlight: github
+    section: TRUE
+---
+
+```{r, echo=TRUE, results='asis'}
+#knitr::kable(head(iris, 10))
+```
+
+## Project Description: 
+
+Sentiment analysis on the primary election results using Twitter data.
+
+**Members:** B. Sosnovski, E. Azrilyan and R. Mercier
+
+**Motivation:** Sentiment analysis plays an important role during elections. Political strategists can use the public’s opinions, emotions, attitudes, etc., to convert them into votes in 2020.
+Can we use the public’s sentiment to determine which political party has the upper hand in the next election?
+Data: To conduct our analysis we will harvest data using Twitter and Facebook’s APIs. Data will be restricted to a certain date range and geographic region. 
+
+**Work Flow:** 
+
+1. Fetch, clean and tokenize the data.
+2. Perform feature selection to keep only the n-grams (most likely bigrams) that are meaningful for an analysis.
+3. Classify results as positive, negative and neutral. At this phase of the project, we not sure yet what type of analysis to perform. A possible analysis that can be performed is one of the  following:
+
+   + Counting and correlating pairs of words.
+   + Build predictive models using logistic regression to predict the probability of occurrence of an event.
+   + Probabilistic topic model using Latent Dirichlet Allocation (LDA) method to be applied for reading general tendency from FB/Twitter posts or comments into certain topics that can be classified toward positive and negative sentiment.
+   
+**Tools:**
+
++ Tweeter Premium Search API - 30-day endpoint (Sandbox), which provides Tweets from the previous 30 days.
++ R Packages
+
+## Load Libraries
+```{r}
+library(twitteR)
+library(rjson)
+library(RMySQL)
+library(httr)
+```
+
+## API's Information
+
+Read key, key secret, access token and and access token secret from a text file to mantain the information confidential.
+
+```{r}
+api <- read.table("Twitter_API_Key.txt", header = TRUE, stringsAsFactors = FALSE)
+names(api)
+dim(api)
+App_Name <- api$app_name
+Consumer_Key <- api$key
+Consumer_Secret <- api$secret_Key
+Access_Token <- api$access_token
+Access_Secret <- api$access_token_secret
+```
+
+Using access token method: create token and save it as an environment variable.
+```{r}
+setup_twitter_oauth(Consumer_Key, Consumer_Secret, Access_Token, Access_Secret)
+
+```
+
+## Data Acquisition
+
+```{r}
+## Collect tweets
+tweets1 <- searchTwitter("#maxrose+#dandonovan", n=10000,lang = "en", since='2018-11-05', until='2018-11-09', retryOnRateLimit = 1000)
+df <- twListToDF(tweets1)
+write.csv(df, "tweets1.csv", row.names=FALSE)
+
+## Back up tweets to a MySQL database
+register_mysql_backend('tweets1_db', host = 'localhost', user='test_user', password='data607')
+store_tweets_db(tweets1)
+
+## Load tweets from database
+from_db = load_tweets_db(as.data.frame = TRUE)
+```
+
+## Tweets Preprocessing 
+
+## Tweets Cleaning
+ 
+The next steps is to  cleanse the texts in the tweets by:
+ 
+* Removing Twitter handles (@user)
+* Removing punctuations, numbers, and special characters 
+* Removing white spaces (?) and stop words
+* Remove hashtags, tags, urls, Twitter short words, etc.
+* Converting the corpus to lower case (?)
+
+## Sentiment Analysis
+
+Check packages SentimentAnalysis and sentimentr.
+
+## Reference
+
+Jeff Gentry. March 18, 2014. "twitteR - Twitter client for R."  R package version 1.1.9. <https://www.rdocumentation.org/packages/twitteR/versions/1.1.9>
