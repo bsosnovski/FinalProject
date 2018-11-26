@@ -1,0 +1,147 @@
+---
+title: "Final Project: Midterm Election Results - Sentiment Analysis Using Twitter's API"
+author: "B. Sosnovski, E. Azrilyan and R. Mercier"
+date: "11/23/2018"
+output:
+  prettydoc::html_pretty:
+    theme: architect
+    highlight: github
+    section: TRUE
+---
+
+## Project Description: 
+
+Sentiment analysis on the primary election results using Twitter data.
+
+**Members:** B. Sosnovski, E. Azrilyan and R. Mercier
+
+**Motivation:** Sentiment analysis plays an important role during elections. Political strategists can use the public’s opinions, emotions, attitudes, etc., to convert them into votes in 2020.
+Can we use the public’s sentiment to determine which political party has the upper hand in the next election?
+Data: To conduct our analysis we will harvest data using Twitter and Facebook’s APIs. Data will be restricted to a certain date range and geographic region. 
+
+**Work Flow:** 
+
+1. Fetch, clean and tokenize the data.
+2. Perform feature selection to keep only the n-grams (most likely bigrams) that are meaningful for an analysis.
+3. Classify results as positive, negative and neutral. At this phase of the project, we not sure yet what type of analysis to perform. A possible analysis that can be performed is one of the  following:
+
+   + Counting and correlating pairs of words.
+   + Build predictive models using logistic regression to predict the probability of occurrence of an event.
+   + Probabilistic topic model using Latent Dirichlet Allocation (LDA) method to be applied for reading general tendency from FB/Twitter posts or comments into certain topics that can be classified toward positive and negative sentiment.
+   
+**Tools:**
+
++ Tweeter Premium Search API - 30-day endpoint (Sandbox), which provides Tweets from the previous 30 days.
++ R Packages
+
+## Load Libraries
+```{r}
+#library(twitteR)
+library(httr)
+library(base64enc)
+library(jsonlite)
+#library(rjson)
+library(ROAuth)
+library(dplyr)
+```
+
+## API Credentials
+
+Read key, key secret, access token and and access token secret from a text file to mantain the information confidential.
+
+```{r}
+api <- read.table("Twitter_API_Key.txt", header = TRUE, stringsAsFactors = FALSE)
+names(api)
+dim(api)
+App_Name <- api$app_name
+Consumer_Key <- api$key
+Consumer_Secret <- api$secret_Key
+Access_Token <- api$access_token
+Access_Secret <- api$access_token_secret
+```
+
+The following two chunks of code were retrieved from <https://twittercommunity.com/t/how-to-use-premium-api-for-the-first-time-beginner/105346/10>
+
+## API Authentication
+
+```{r}
+# base64 encoding
+kands <- paste(Consumer_Key, Consumer_Secret, sep=":")
+base64kands <- base64encode(charToRaw(kands))
+base64kandsb <- paste("Basic", base64kands, sep=" ")
+
+# request bearer token
+resToken <- POST(url = "https://api.twitter.com/oauth2/token",
+                 add_headers("Authorization" = base64kandsb, "Content-Type" = "application/x-www-form-urlencoded;charset=UTF-8"),
+                 body = "grant_type=client_credentials")
+
+# get bearer token
+bearer <- content(resToken)
+bearerToken <- bearer[["access_token"]]
+bearerTokenb <- paste("Bearer", bearerToken, sep=" ")
+```
+
+## Data Acquisition
+
+```{r}
+resTweets <- POST(url = "https://api.twitter.com/1.1/tweets/search/30day/dev.json",
+                  add_headers("authorization" = bearerTokenb, "content-Type" = "application/json"),
+                  body = "{\"query\": \"#maxrose OR #dandonovan\",\"maxResults\": 100, \"fromDate\":\"201811050000\", \"toDate\":\"201811100000\"}")
+
+# Parse the data
+tweets_df <- fromJSON(content(resTweets, "text"),flatten = TRUE) %>% data.frame()
+class(tweets_df)
+head(tweets_df)
+
+## Saving data from the texts of the tweets only
+text_df <- tweets_df$results.text
+write.csv(text_df, "text.csv", row.names=FALSE)
+
+## Saving the whole data
+# The function write.csv returns error with data.frames with list-column
+# The code below identify and remove the columns of the data frame that are lists
+
+# function to identify which columns are lists
+list_col <- function(df){
+        n <- length(df)
+        vec <- vector('numeric')
+        for (i in 1:n){
+                cl <- df[,i]
+                if(class(cl)=="list"){
+                        vec <- c(vec,i)
+                }
+        }
+        return(vec)
+}
+
+# Remove the list-columns
+vec<-list_col(tweets_df)
+tweets_df <- tweets_df[,-vec]
+
+head(tweets_df)
+write.csv(tweets_df, "tweets.csv", row.names=FALSE)
+
+```
+
+## Tweets Preprocessing 
+
+## Tweets Cleaning
+ 
+The next steps is to  cleanse the texts in the tweets by:
+ 
+* Removing Twitter handles (@user)
+* Removing punctuations, numbers, and special characters 
+* Removing white spaces (?) and stop words
+* Remove hashtags, tags, urls, Twitter short words, etc.
+* Converting the corpus to lower case (?)
+
+## Sentiment Analysis
+
+Check packages SentimentAnalysis and sentimentr.
+
+## Reference
+
+* Jeff Gentry. March 18, 2014. "twitteR - Twitter client for R."  R package version 1.1.9. <https://www.rdocumentation.org/packages/twitteR/versions/1.1.9>
+
+
+* hupseb. "How to use premium API for the first time (beginner)?" Post #10, May 13, 2018. Twitter Developers Forums. <https://twittercommunity.com/t/how-to-use-premium-api-for-the-first-time-beginner/105346/10>
