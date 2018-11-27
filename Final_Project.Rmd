@@ -40,7 +40,6 @@ Data: To conduct our analysis we will harvest data using Twitter and Facebook’
 library(httr)
 library(base64enc)
 library(jsonlite)
-#library(rjson)
 library(ROAuth)
 library(dplyr)
 ```
@@ -50,21 +49,21 @@ library(dplyr)
 Read key, key secret, access token and and access token secret from a text file to mantain the information confidential.
 
 ```{r}
-# api <- read.table("Twitter_API_Key.txt", header = TRUE, stringsAsFactors = FALSE)
-# names(api)
-# dim(api)
-# App_Name <- api$app_name
-# Consumer_Key <- api$key
-# Consumer_Secret <- api$secret_Key
-# Access_Token <- api$access_token
-# Access_Secret <- api$access_token_secret
+api <- read.table("Twitter_API_Key.txt", header = TRUE, stringsAsFactors = FALSE)
+names(api)
+dim(api)
+App_Name <- api$app_name
+Consumer_Key <- api$key
+Consumer_Secret <- api$secret_Key
+Access_Token <- api$access_token
+Access_Secret <- api$access_token_secret
 ```
 
 The following two chunks of code were retrieved from <https://twittercommunity.com/t/how-to-use-premium-api-for-the-first-time-beginner/105346/10>
 
 ## API Authentication
 
-```{r}
+```{r eval=FALSE}
 # base64 encoding
 kands <- paste(Consumer_Key, Consumer_Secret, sep=":")
 base64kands <- base64encode(charToRaw(kands))
@@ -83,7 +82,7 @@ bearerTokenb <- paste("Bearer", bearerToken, sep=" ")
 
 ## Data Acquisition
 
-```{r}
+```{r eval=FALSE}
 # resTweets <- POST(url = "https://api.twitter.com/1.1/tweets/search/30day/dev.json",
 #                   add_headers("authorization" = bearerTokenb, "content-Type" = "application/json"),
 #                   body = "{\"query\": \"#maxrose OR #dandonovan\",\"maxResults\": 100, \"fromDate\":\"201811050000\", \"toDate\":\"201811100000\"}")
@@ -100,11 +99,11 @@ tweets_df <- fromJSON(content(resTweets, "text"),flatten = TRUE) %>% data.frame(
 class(tweets_df)
 head(tweets_df)
 
-## Saving data from the texts of the tweets only
+# Saving data from the texts of the tweets only #
 text_df <- tweets_df$results.text
 write.csv(text_df, "text.csv", row.names=FALSE)
 
-## Saving the whole data
+# Saving the whole data #
 # The function write.csv returns error with data.frames with list-column
 # The code below identify and remove the columns of the data frame that are lists
 
@@ -152,4 +151,3 @@ Check packages SentimentAnalysis and sentimentr.
 
 
 * hupseb. "How to use premium API for the first time (beginner)?" Post #10, May 13, 2018. Twitter Developers Forums. <https://twittercommunity.com/t/how-to-use-premium-api-for-the-first-time-beginner/105346/10>
-
