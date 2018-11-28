@@ -48,7 +48,7 @@ library(dplyr)
 
 Read key, key secret, access token and and access token secret from a text file to mantain the information confidential.
 
-```{r}
+```{r eval=FALSE}
 api <- read.table("Twitter_API_Key.txt", header = TRUE, stringsAsFactors = FALSE)
 names(api)
 dim(api)
