@@ -31,7 +31,7 @@ Data: To conduct our analysis we will harvest data using Twitter and Facebook’
    
 **Tools:**
 
-+ Tweeter Premium Search API - 30-day endpoint (Sandbox), which provides Tweets from the previous 30 days.
++ Tweeter Premium Search API - 30-day endpoint (Sandbox), which provides tweets from the previous 30 days.
 + R Packages
 
 ## Load Libraries
@@ -40,7 +40,7 @@ Data: To conduct our analysis we will harvest data using Twitter and Facebook’
 library(httr)
 library(base64enc)
 library(jsonlite)
-library(ROAuth)
+#library(ROAuth)
 library(dplyr)
 ```
 
