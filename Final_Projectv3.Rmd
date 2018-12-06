@@ -102,3 +102,80 @@ Check packages SentimentAnalysis and sentimentr.
 ## Reference
 
 Jeff Gentry. March 18, 2014. "twitteR - Twitter client for R."  R package version 1.1.9. <https://www.rdocumentation.org/packages/twitteR/versions/1.1.9>
+
+library(knitr)
+library(XML)
+library(RCurl)
+library(jsonlite)
+library(methods)
+library(tm)
+library(twitteR)
+
+#Creating data frames for the individual Twitter stream files; including UTF-8.
+BS1.1 <- url("https://raw.githubusercontent.com/bsosnovski/FinalProject/e42c792ab9233f182c5a8e007eed5b0aef85a1ce/tweets.csv")
+Stream1 <- read.csv(BS1.1,header = TRUE, fileEncoding = "ASCII")
+Stream1.1 <- Stream1[c(1,4,31)]
+
+BS1.2 <- url("https://raw.githubusercontent.com/bsosnovski/FinalProject/e42c792ab9233f182c5a8e007eed5b0aef85a1ce/tweets2.csv")
+Stream2 <- read.csv(BS1.2,header = TRUE, fileEncoding = "ASCII")
+Stream2.1 <- Stream2[c(1,4,29)]
+
+BS1.3 <- url("https://raw.githubusercontent.com/bsosnovski/FinalProject/e42c792ab9233f182c5a8e007eed5b0aef85a1ce/tweets3.csv")
+Stream3 <- read.csv(BS1.3,header = TRUE, fileEncoding = "ASCII")
+Stream3.1 <- Stream3[c(1,4,29)]
+
+BS1.4 <- url("https://raw.githubusercontent.com/bsosnovski/FinalProject/e42c792ab9233f182c5a8e007eed5b0aef85a1ce/tweets4.csv")
+Stream4 <- read.csv(BS1.4,header = TRUE, fileEncoding = "ASCII")
+Stream4.1 <- Stream4[c(1,4,29)]
+
+BS1.5 <- url("https://raw.githubusercontent.com/bsosnovski/FinalProject/e42c792ab9233f182c5a8e007eed5b0aef85a1ce/tweets5.csv")
+Stream5 <- read.csv(BS1.5,header = TRUE, fileEncoding = "ASCII")
+Stream5.1 <- Stream5[c(1,4,31)]
+
+BS1.6 <- url("https://raw.githubusercontent.com/bsosnovski/FinalProject/master/tweets6.csv")
+Stream6 <- read.csv(BS1.6,header = TRUE, fileEncoding = "ASCII")
+Stream6.1 <- Stream6[c(1,4,30)]
+
+Stream <- rbind(Stream1.1, Stream2.1, Stream3.1, Stream5.1, Stream6.1)
+combined_doc <- iconv(Stream, "UTF-8", "ASCII", sub = "")
+combined_doc
+
+### Check on #2
+Mycorpus <- Corpus(VectorSource(Stream$results.text))
+#Various cleansing funtions:
+#ASCII Symbols
+remove_ASCIIs <- function(x) gsub("[^\x01-\x7F]", "", x)
+Mycorpus <- tm_map(Mycorpus, content_transformer(remove_ASCIIs))
+#Retweets
+remove_RTs <- function(x) gsub("(RT|via)((?:\\b\\W*@\\w+)+)", "", x)
+Mycorpus <- tm_map(Mycorpus, content_transformer(remove_RT))
+#@'s 
+remove_ATs <- function(x) gsub("@\\w+", "", x)
+Mycorpus <- tm_map(Mycorpus, content_transformer(remove_ATs))
+#All Punctuations
+remove_Puncts <- function(x) gsub("[[:punct:]]", "", x)
+Mycorpus <- tm_map(Mycorpus, content_transformer(remove_Puncts))
+#All Digits
+remove_Digits <- function(x) gsub("[[:digit:]]", "", x)
+Mycorpus <- tm_map(Mycorpus, content_transformer(remove_Digits))
+#3-Step HTTP Process
+remove_HTTPSs <- function(x) gsub("http\\w+", "", x)
+Mycorpus <- tm_map(Mycorpus, content_transformer(remove_HTTPSs))
+remove_HTTPSs2 <- function(x) gsub("[ \t]{2,}", "", x)
+Mycorpus <- tm_map(Mycorpus, content_transformer(remove_HTTPSs2))
+remove_HTTPSs3 <- function(x) gsub("^\\s+|\\s+$", "", x)
+Mycorpus <- tm_map(Mycorpus, content_transformer(remove_HTTPSs3))
+
+#Whitespaces
+remove_WhiteSpace <- function(x) gsub("[ \t]{2,}", "", x)
+Mycorpus <- tm_map(Mycorpus, content_transformer(remove_WhiteSpace))
+#stopwards
+Mycorpus <- tm_map(Mycorpus, removeWords,stopwords("en"))
+#Lower Case
+Mycorpus <- tm_map(Mycorpus, content_transformer(tolower))
+
+dtm <- DocumentTermMatrix(Mycorpus)
+
+
+wordcloud(Mycorpus, random.order=F, scale=c(3, 0.5), min.freq = 5, col=rainbow(50))
+
