@@ -9,7 +9,7 @@ output:
     section: TRUE
 ---
 
-## Project Description: 
+# Project Description: 
 
 Sentiment analysis on the primary election results using Twitter data.
 
@@ -34,17 +34,20 @@ Data: To conduct our analysis we will harvest data using Twitter and Facebook’
 + Tweeter Premium Search API - 30-day endpoint (Sandbox), which provides tweets from the previous 30 days.
 + R Packages
 
-## Load Libraries
+# Twitter Premium API
+
+![ ](https://i.imgur.com/Sd2QMvj.png){ width=75% }
+
+# Load Libraries
 ```{r}
 #library(twitteR)
 library(httr)
 library(base64enc)
 library(jsonlite)
-#library(ROAuth)
-library(dplyr)
+library(stringr)
 ```
 
-## API Credentials
+# API Credentials
 
 Read key, key secret, access token and and access token secret from a text file to mantain the information confidential.
 
@@ -61,7 +64,7 @@ Access_Secret <- api$access_token_secret
 
 The following two chunks of code were retrieved from <https://twittercommunity.com/t/how-to-use-premium-api-for-the-first-time-beginner/105346/10>
 
-## API Authentication
+# API Authentication
 
 ```{r eval=FALSE}
 # base64 encoding
@@ -80,34 +83,14 @@ bearerToken <- bearer[["access_token"]]
 bearerTokenb <- paste("Bearer", bearerToken, sep=" ")
 ```
 
-## Data Acquisition
+# Data Acquisition
 
-```{r eval=FALSE}
-# resTweets <- POST(url = "https://api.twitter.com/1.1/tweets/search/30day/dev.json",
-#                   add_headers("authorization" = bearerTokenb, "content-Type" = "application/json"),
-#                   body = "{\"query\": \"#maxrose OR #dandonovan\",\"maxResults\": 100, \"fromDate\":\"201811050000\", \"toDate\":\"201811100000\"}")
+Since the Twitter Premium API - Sandbox (free version) limits access to the tweets posted the last 30 days only, it is important to save the results of the search in to a file. This way, we can have access to the results afterwards.
 
-resTweets <- POST(url = "https://api.twitter.com/1.1/tweets/search/30day/dev.json",
-                  add_headers("authorization" = bearerTokenb, "content-Type" = "application/json"),
-                  body = "{\"query\": \"#maxrose OR #dandonovan\",\"maxResults\": 100, \"fromDate\":\"201811050000\", \"toDate\":\"201811100000\",  \"next\":\"eyJhdXRoZW50aWNpdHkiOiI1MDU2NTU3ODgwMmJhZDZmNGZhNzE4NjI4NmI3YTk0N2NkMDM2NWU1ZmY2Mjg1NDk1NWRkMDAzYTk1MmU2ZDQ3IiwiZnJvbURhdGUiOiIyMDE4MTEwNTAwMDAiLCJ0b0RhdGUiOiIyMDE4MTExMDAwMDAiLCJuZXh0IjoiMjAxODExMDcwMzQ1MjUtMTA2MDAxNTMzOTgxNDI0ODQ0Ny0wIn0=\"}")
+When converting the data received from the API  to a data frame, it may include columns with lists as observations. In this case, the R function "write.csv"" returns an error. The function below identifies which columns of the data frame contain lists. Such columns  The information removed in the process includes not important for our project.   
 
-# Response
-resTweets
-
-# Parse the data
-tweets_df <- fromJSON(content(resTweets, "text"),flatten = TRUE) %>% data.frame()
-class(tweets_df)
-head(tweets_df)
-
-# Saving data from the texts of the tweets only #
-text_df <- tweets_df$results.text
-write.csv(text_df, "text.csv", row.names=FALSE)
-
-# Saving the whole data #
-# The function write.csv returns error with data.frames with list-column
-# The code below identify and remove the columns of the data frame that are lists
-
-# function to identify which columns are lists
+```{r}
+# Function to identify which columns are lists
 list_col <- function(df){
         n <- length(df)
         vec <- vector('numeric')
@@ -120,18 +103,80 @@ list_col <- function(df){
         return(vec)
 }
 
-# Remove the list-columns
-vec<-list_col(tweets_df)
-tweets_df <- tweets_df[,-vec]
+```
 
-head(tweets_df)
-write.csv(tweets_df, "tweets.csv", row.names=FALSE)
+Requests for data will likely generate more data than can be returned in a single response (our limit is up to 100 tweets in a single response). When a response is paginated, the API response will respond with a "Next" token specified in the body that indicates whether any further pages are available. These "next page tokens" can then be used to make further requests.The following function automates the API requests with or without pagination. 
+
+```{r eval=FALSE}
+
+# the query includes terms "#maxrose", "#dandonovan", "@RepDanDonovan", "@MaxRose4NY" 
+# data range: from 2018/11/11 to 2018/11/19
+
+sbody = "{\"query\": \"#maxrose OR #dandonovan OR @RepDanDonovan OR @MaxRose4NY\",\"maxResults\": 100, \"fromDate\":\"201811050000\", \"toDate\":\"201811190000"
+ebody = "\"}"
+
+request <- function(start_body,end_body){
+         full_body <- str_c(start_body, end_body, sep = "")
+         nxt <-""
+         pageNo <- 1
+         
+         while(!is.null(nxt)){
+                resTweets <- POST(url = "https://api.twitter.com/1.1/tweets/search/30day/dev.json",
+                  add_headers("authorization" = bearerTokenb, "content-Type" = "application/json"),
+                  body = full_body)
+                
+                #checking if the type of response is json
+                if (http_type(resTweets) != "application/json") {
+                        stop("API did not return json", call. = FALSE)}
+                
+                #checking if the resquest was successful
+                if (http_error(resTweets)) {
+                        stop(sprintf("Twitter API request failed! Status = %s. Check what went wrong.\n", 
+                                     status_code(resTweets)),
+                             call. = FALSE)}else{
+                                     message("Retrieving page ",pageNo)}
+                
+                # Parse the data
+                tweets_df <- fromJSON(content(resTweets, "text"),flatten = TRUE) %>% data.frame()
+                #class(tweets_df)
+                #head(tweets_df)
+        
+                # Saving data only from the texts of the tweets
+                text_df <- tweets_df$results.text
+                file1 <- str_c("text",pageNo,".csv")
+                write.csv(text_df, file1, row.names=FALSE)
+        
+                # Remove the list-columns
+                vec<-list_col(tweets_df)
+                tweets_df <- tweets_df[,-vec]
+
+                # Saving the whole data
+                #head(tweets_df)
+                file2 <- str_c("tweet",pageNo,".csv")
+                write.csv(tweets_df, file2, row.names=FALSE)
+        
+                # Read the "next"" token received in the response
+                nxt <- tweets_df$next.[[1]]
+        
+                if(!is.null(nxt)){
+                        # insert the next token in the body of the request
+                        full_body <- str_c(start_body, "\", \"next\":\"", nxt, end_body, sep = "")
+                        pageNo <- pageNo+1}
+                
+                # To avoid to exceed the API's limit per minute
+                Sys.sleep(3) # to avoid to exceed the API's limit per minute
+        } #end of while loop
+         
+}#end of function
+
+request(start_body = sbody,end_body = ebody)
 
 ```
 
-## Tweets Preprocessing 
 
-## Tweets Cleaning
+# Tweets Preprocessing 
+
+# Tweets Cleaning
  
 The next steps is to  cleanse the texts in the tweets by:
  
@@ -141,13 +186,16 @@ The next steps is to  cleanse the texts in the tweets by:
 * Remove hashtags, tags, urls, Twitter short words, etc.
 * Converting the corpus to lower case (?)
 
-## Sentiment Analysis
+# Sentiment Analysis
 
 Check packages SentimentAnalysis and sentimentr.
+Check this for a good and simple example of sentiment analysis
+<https://www.earthdatascience.org/courses/earth-analytics/get-data-using-apis/sentiment-analysis-of-twitter-data-r/>
 
-## Reference
+# Reference
 
-* Jeff Gentry. March 18, 2014. "twitteR - Twitter client for R."  R package version 1.1.9. <https://www.rdocumentation.org/packages/twitteR/versions/1.1.9>
-
+* Jeff Gentry. "twitteR - Twitter client for R." March 18, 2014. R package version 1.1.9. <https://www.rdocumentation.org/packages/twitteR/versions/1.1.9>
 
 * hupseb. "How to use premium API for the first time (beginner)?" Post #10, May 13, 2018. Twitter Developers Forums. <https://twittercommunity.com/t/how-to-use-premium-api-for-the-first-time-beginner/105346/10>
+
+* Hadley Wickham. "Best practices for API packages". Aug 20, 2017. R package httr Vignette. <https://cran.r-project.org/web/packages/httr/vignettes/api-packages.html>
