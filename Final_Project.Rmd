@@ -331,8 +331,55 @@ head(df, n=10)
 Stream$results.text <- as.character(df$text)
 head(Stream, n=10)
 
+Streamnew <- Stream %>%  
+  unnest_tokens(word, results.text)
+
 ```
 
+Here is count of most frequest words, this is similar to what we are showing with a word cloud, so might not be needed.
+
+```{r}
+Streamnew %>%
+  count(word, sort = TRUE) %>%
+  top_n(15) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = word, y = n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip() +
+  labs(x = "Count",
+       y = "Unique words",
+       title = "Count of unique words found in tweets")
+## Selecting by n
+```
+
+We are going to use the “bing” sentiment data which classifies words as positive or negative. We are joining the words extracted from the tweets with this sentiment data. 
+
+```{r}
+# join sentiment classification to the tweet words
+bing_word_counts <- Streamnew %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+## Joining, by = "word"
+```
+
+The code below creates a plot of positive and negative words. 
+
+```{r]
+bing_word_counts %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(title = "Sentiment Primary Election Sentiment.",
+       y = "Contribution to sentiment",
+       x = NULL) +
+  coord_flip()
+```
 
 # Sentiment Analysis
 
