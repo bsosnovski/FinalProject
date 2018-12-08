@@ -233,7 +233,7 @@ str(Stream)
 ```
 
 
-For our analysis, we are interest in the tweets send by people other than the candidates themselves. So we exclude the tweets whose user name are the candidates.
+For our analysis, we are interest in the tweets sent by people other than the candidates themselves. So we exclude the tweets for which the user name are of the candidates.
 
 ```{r}
 Stream <- Stream %>% filter(!results.user.name %in% c("Max Rose","Dan Donovan"))
