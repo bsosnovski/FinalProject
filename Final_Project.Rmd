@@ -233,12 +233,18 @@ str(Stream)
 ```
 
 
-For our analysis, we are interest in the tweets sent by people other than the candidates themselves. So we exclude the tweets for which the user name are of the candidates.
+For our analysis, we are interest in the tweets sent by people other than the candidates themselves. So we exclude the tweets whose user name are the candidates.
 
 ```{r}
 Stream <- Stream %>% filter(!results.user.name %in% c("Max Rose","Dan Donovan"))
-str(Stream)
 
+# Add row numbers and move to the front of the data frame
+Stream <- Stream %>% mutate(id = row_number()) %>% select(id, everything())
+
+# Change format of dates
+# I don't know if we need to keep it. If so, we replace the original column
+Stream$results.created_at <- as.POSIXct(Stream$results.created_at, format = "%a %b %d %H:%M:%S +0000 %Y")
+str(Stream)
 ```
 
 ```{r}
@@ -298,14 +304,35 @@ Mycorpus <- tm_map(Mycorpus, removeWords,stopwords("en"))
 
 #Lower Case
 Mycorpus <- tm_map(Mycorpus, content_transformer(tolower))
+
+
+# View the corpus
+inspect(Mycorpus[1:10])
 ```
 
 
 ```{r}
-dtm <- DocumentTermMatrix(Mycorpus)
+# I don't think we need the dtm below
+#dtm <- DocumentTermMatrix(Mycorpus)
 suppressWarnings(wordcloud(Mycorpus, random.order=F, scale=c(3, 0.5), min.freq = 5, col=rainbow(50)))
 
 ```
+
+Replace Twitter's texts in original data frame with the clean data from corpus.
+
+```{r}
+# Original data frame
+head(Stream, n=10)
+
+# Clean corpus
+df <- data.frame(text = get("content", Mycorpus))
+head(df, n=10)
+
+Stream$results.text <- as.character(df$text)
+head(Stream, n=10)
+
+```
+
 
 # Sentiment Analysis
 
