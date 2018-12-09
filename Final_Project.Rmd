@@ -318,6 +318,8 @@ suppressWarnings(wordcloud(Mycorpus, random.order=F, scale=c(3, 0.5), min.freq =
 
 ```
 
+#Sentiment Analysis
+
 Replace Twitter's texts in original data frame with the clean data from corpus.
 
 ```{r}
@@ -379,6 +381,45 @@ bing_word_counts %>%
        y = "Contribution to sentiment",
        x = NULL) +
   coord_flip()
+```
+
+Let's take a look at our results at different times as time passes.
+
+The code below adds a column to clasify tweets as "Early, Med, or Late"
+
+```{r]
+Streamnew$Timing <- ifelse(Streamnew$results.created_at <= '2018-11-07', 'Early',
+                  ifelse(Streamnew$results.created_at >= '2018-11-07' & Streamnew$results.created_at <= '2018-11-08', 'Med',
+                         ifelse(Streamnew$results.created_at >= '2018-11-08', 'Late', 'other')
+                  ))
+```
+
+The Code below joins our data frame with sentiment data and plots positive and negative words in those 3 timing categories.
+
+```{r}
+
+# join sentiment classification to the tweet words
+Elec_sentiment_2013 <- Streamnew %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, Timing, sort = TRUE) %>%
+  group_by(sentiment) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  group_by(Timing, sentiment) %>%
+  top_n(n = 5, wt = n) %>%
+  arrange(Timing, sentiment, n)
+## Joining, by = "word"
+
+Elec_sentiment_2013 %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~Timing, scales = "free_y", ncol = 2) +
+  labs(title = "Sentiment during the 2013 flood event by month.",
+       y = "Number of Times Word Appeared in Tweets",
+       x = NULL) +
+  coord_flip()
+
+
 ```
 
 # Sentiment Analysis
