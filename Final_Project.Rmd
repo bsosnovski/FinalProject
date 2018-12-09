@@ -11,23 +11,23 @@ output:
 
 # Project Description: 
 
-Sentiment analysis on the primary election results using Twitter data.
+Using Twitter API fo sentiment analysis on the 2018 midterm election results for the 11th District of Staten Island.
 
 **Members:** B. Sosnovski, E. Azrilyan and R. Mercier
 
 **Motivation:** Sentiment analysis plays an important role during elections. Political strategists can use the public’s opinions, emotions, attitudes, etc., to convert them into votes in 2020.
 Can we use the public’s sentiment to determine which political party has the upper hand in the next election?
-Data: To conduct our analysis we will harvest data using Twitter and Facebook’s APIs. Data will be restricted to a certain date range and geographic region. 
+Data: To conduct our analysis we will harvest data using one fo the Twitter's API. Data will be restricted to a certain date range for a particular election race. 
 
 **Work Flow:** 
 
 1. Fetch, clean and tokenize the data.
-2. Perform feature selection to keep only the n-grams (most likely bigrams) that are meaningful for an analysis.
-3. Classify results as positive, negative and neutral. At this phase of the project, we not sure yet what type of analysis to perform. A possible analysis that can be performed is one of the  following:
+2. Perform feature selection to keep only the tweets that are meaningful for the analysis.
+3. Classify results as positive or negative. At this phase of the project, we not sure yet what type of analysis to perform. A possible analysis that can be performed is one of the  following:
 
    + Counting and correlating pairs of words.
    + Build predictive models using logistic regression to predict the probability of occurrence of an event.
-   + Probabilistic topic model using Latent Dirichlet Allocation (LDA) method to be applied for reading general tendency from FB/Twitter posts or comments into certain topics that can be classified toward positive and negative sentiment.
+   + Probabilistic topic model using Latent Dirichlet Allocation (LDA) method to be applied for reading general tendency from Twitter posts or comments into certain topics that can be classified toward positive and negative sentiment.
    
 **Tools:**
 
@@ -36,7 +36,7 @@ Data: To conduct our analysis we will harvest data using Twitter and Facebook’
 
 # Twitter Premium API
 
-First we need Twitter API Access. The following steps were taken to set up a twitter account and be able to use the Twitter API.
+First we needed to obtain the Twitter Premium API access. The following steps were taken to set up a twitter account and be able to use the Twitter API.
 
 1. Created a twitter account.
 2. Logged in with the twitter credentials on <https://dev.twitter.com/apps> and applied for a developer account.
@@ -52,13 +52,14 @@ library(httr)
 library(base64enc)
 library(jsonlite)
 library(stringr)
-library(dplyr)
+suppressMessages(library(tidyverse))
+library(tidytext)
 library(knitr)
 library(XML)
-library(RCurl)
+suppressMessages(library(RCurl))
 library(methods)
-library(tm)
-library(wordcloud)
+suppressMessages(library(tm))
+suppressMessages(library(wordcloud))
 ```
 
 # API Credentials
@@ -76,9 +77,12 @@ Access_Token <- api$access_token
 Access_Secret <- api$access_token_secret
 ```
 
-The following two chunks of code were retrieved from <https://twittercommunity.com/t/how-to-use-premium-api-for-the-first-time-beginner/105346/10>
 
 # API Authentication
+
+We faced a chanllenge in this part of the project because much of the documentation available on how to access the Twitter APIs using R is about access the Twitter's Basic Search API (not the Premium Search API, which was launched in Nov 2017). The basic Twitter API only give access to the previous 7 days of posted tweets. To conduct our project, we needed access to tweets posted earlier than prior 7 days.
+
+The following two chunks of code were retrieved from <https://twittercommunity.com/t/how-to-use-premium-api-for-the-first-time-beginner/105346/10>
 
 ```{r eval=FALSE}
 # base64 encoding
@@ -99,9 +103,9 @@ bearerTokenb <- paste("Bearer", bearerToken, sep=" ")
 
 # Data Acquisition
 
-Since the Twitter Premium API - Sandbox (free version) limits access to the tweets posted the last 30 days only, it is important to save the results of the search in to csv files. This way, we can have access to the results afterwards.
+Since the Twitter Premium API - Sandbox (free version) limits access to the tweets posted for the last 30 days only, it is important to save the results of the search in to csv files. This way, we can have access to the results afterwards, even when the data was not available anymore via the API.
 
-When converting the data received from the API  to a data frame, it may include columns with lists as observations. In this case, the R function "write.csv"" returns an error. The function below identifies which columns of the data frame contain lists. Such columns  The information removed in the process includes not important for our project.   
+When converting the data received from the API  to a data frame, it may include columns with lists as observations. In this case, the R function "write.csv" or "write_csv" return an error. The function below identifies which columns of the data frame contain lists.  The information removed in the process is not important for our project.   
 
 ```{r}
 # Function to identify which columns are lists
@@ -119,7 +123,7 @@ list_col <- function(df){
 
 ```
 
-Requests for data will likely generate more data than can be returned in a single response (our limit is up to 100 tweets in a single response). When a response is paginated, the API response will respond with a "Next" token specified in the body that indicates whether any further pages are available. These "next page tokens" can then be used to make further requests.The following function automates the API requests with or without pagination. 
+Requests for data will likely generate more data than can be returned in a single response (our limit is up to 100 tweets in a single response). When a response is paginated, the API response will respond with a "Next" token specified in the body of the response that indicates whether any further pages are available. These "Next" page tokens can then be used to make further requests.The following function automates the API requests with or without pagination. 
 
 ```{r eval=FALSE}
 
@@ -152,10 +156,8 @@ request <- function(start_body,end_body){
                 
                 # Parse the data
                 tweets_df <- fromJSON(content(resTweets, "text"),flatten = TRUE) %>% data.frame()
-                #class(tweets_df)
-                #head(tweets_df)
         
-                # Saving data only from the texts of the tweets
+                # Saving data only from the texts of the tweets in separate files
                 text_df <- tweets_df$results.text
                 file1 <- str_c("text",pageNo,".csv")
                 write.csv(text_df, file1, row.names=FALSE)
@@ -165,7 +167,6 @@ request <- function(start_body,end_body){
                 tweets_df <- tweets_df[,-vec]
 
                 # Saving the whole data
-                #head(tweets_df)
                 file2 <- str_c("tweet",pageNo,".csv")
                 write.csv(tweets_df, file2, row.names=FALSE)
         
@@ -178,7 +179,7 @@ request <- function(start_body,end_body){
                         pageNo <- pageNo+1}
                 
                 # To avoid to exceed the API's limit per minute
-                Sys.sleep(3) # to avoid to exceed the API's rate limit per minute
+                Sys.sleep(3)
         } #end of while loop
          
 }#end of function
@@ -186,6 +187,11 @@ request <- function(start_body,end_body){
 request(start_body = sbody,end_body = ebody)
 ```
 
+![](https://i.imgur.com/9Bv2WKc.png){ width=85% }
+
+The total number of files obtained from the Twitter API is 177.
+
+For our project, we will use files numbers from 67 to 177. These corresponds to tweets from Nov 5 to some tweets from Nov 10.
 
 # Tweets Preprocessing 
 
@@ -197,7 +203,7 @@ The following function that creates a vector with all links to be accessed to re
 start_url <- "https://raw.githubusercontent.com/bsosnovski/FinalProject/master/tweet"
 end_url <- ".csv"
 
-# the number of the files to be used in this project
+# the selected files to be used in this project
 vec <- seq(67,177)
 
 # function
@@ -233,117 +239,133 @@ str(Stream)
 ```
 
 
-For our analysis, we are interest in the tweets sent by people other than the candidates themselves. So we exclude the tweets whose user name are the candidates.
+For our analysis, we are interest in the tweets sent by people other than the candidates themselves. So we exclude the tweets whose user names in them are of the candidates.
 
 ```{r}
 Stream <- Stream %>% filter(!results.user.name %in% c("Max Rose","Dan Donovan"))
 
-# Add row numbers and move to the front of the data frame
-Stream <- Stream %>% mutate(id = row_number()) %>% select(id, everything())
-
 # Change format of dates
-# I don't know if we need to keep it. If so, we replace the original column
 Stream$results.created_at <- as.POSIXct(Stream$results.created_at, format = "%a %b %d %H:%M:%S +0000 %Y")
 str(Stream)
 ```
 
-```{r}
-# Not sure why to do this so for now I commented this line of code.
-#combined_doc <- iconv(Stream, "UTF-8", "ASCII", sub = "")
-#str(combined_doc)
-```
-
 # Tweets Cleaning
  
-The next steps is to  cleanse the texts in the tweets by:
+The next steps are to cleanse the texts in the tweets:
  
-* Removing Twitter handles (@user)
-* Removing punctuations, numbers, and special characters 
-* Removing white spaces (?) and stop words
+* Remove ASCII symbols and Twitter's user handles (@user)
+* Remove punctuations, numbers, digits and special characters 
+* Remove white spaces and stop words
 * Remove hashtags, tags, urls, Twitter short words, etc.
-* Converting the corpus to lower case (?)
+* Convert the corpus to lower case
+
 
 ```{r}
+# Filtering off the retweets from the data (keep only original posts)
+Stream <- Stream %>% 
+  filter(!str_detect(results.text, "^RT"))
+
 Mycorpus <- Corpus(VectorSource(Stream$results.text))
 
 #Various cleansing funtions:
 #ASCII Symbols
 remove_ASCIIs <- function(x) gsub("[^\x01-\x7F]", "", x)
-Mycorpus <- tm_map(Mycorpus, content_transformer(remove_ASCIIs))
-
-#Retweets
-remove_RTs <- function(x) gsub("(RT|via)((?:\\b\\W*@\\w+)+)", "", x)
-Mycorpus <- tm_map(Mycorpus, content_transformer(remove_RTs))
+Mycorpus <- suppressWarnings(tm_map(Mycorpus, content_transformer(remove_ASCIIs)))
 
 #@'s 
 remove_ATs <- function(x) gsub("@\\w+", "", x)
-Mycorpus <- tm_map(Mycorpus, content_transformer(remove_ATs))
+Mycorpus <- suppressWarnings(tm_map(Mycorpus, content_transformer(remove_ATs)))
 
 #All Punctuations
 remove_Puncts <- function(x) gsub("[[:punct:]]", "", x)
-Mycorpus <- tm_map(Mycorpus, content_transformer(remove_Puncts))
+Mycorpus <- suppressWarnings(tm_map(Mycorpus, content_transformer(remove_Puncts)))
 
 #All Digits
 remove_Digits <- function(x) gsub("[[:digit:]]", "", x)
-Mycorpus <- tm_map(Mycorpus, content_transformer(remove_Digits))
+Mycorpus <- suppressWarnings(tm_map(Mycorpus, content_transformer(remove_Digits)))
 
 #3-Step HTTP Process
 remove_HTTPSs <- function(x) gsub("http\\w+", "", x)
-Mycorpus <- tm_map(Mycorpus, content_transformer(remove_HTTPSs))
+Mycorpus <- suppressWarnings(tm_map(Mycorpus, content_transformer(remove_HTTPSs)))
 remove_HTTPSs2 <- function(x) gsub("[ \t]{2,}", "", x)
-Mycorpus <- tm_map(Mycorpus, content_transformer(remove_HTTPSs2))
+Mycorpus <- suppressWarnings(tm_map(Mycorpus, content_transformer(remove_HTTPSs2)))
 remove_HTTPSs3 <- function(x) gsub("^\\s+|\\s+$", "", x)
-Mycorpus <- tm_map(Mycorpus, content_transformer(remove_HTTPSs3))
+Mycorpus <- suppressWarnings(tm_map(Mycorpus, content_transformer(remove_HTTPSs3)))
 
 #Whitespaces
 remove_WhiteSpace <- function(x) gsub("[ \t]{2,}", "", x)
-Mycorpus <- tm_map(Mycorpus, content_transformer(remove_WhiteSpace))
-
-#stopwards
-Mycorpus <- tm_map(Mycorpus, removeWords,stopwords("en"))
+Mycorpus <- suppressWarnings(tm_map(Mycorpus, content_transformer(remove_WhiteSpace)))
 
 #Lower Case
-Mycorpus <- tm_map(Mycorpus, content_transformer(tolower))
+Mycorpus <- suppressWarnings(tm_map(Mycorpus, content_transformer(tolower)))
 
+#im's 
+remove_IMs <- function(x) gsub("im", "", x)
+Mycorpus <- suppressWarnings(tm_map(Mycorpus, content_transformer(remove_IMs)))
+
+#stopwards
+Mycorpus <- suppressWarnings(tm_map(Mycorpus, removeWords,stopwords("English")))
+
+#dtm <- DocumentTermMatrix(Mycorpus)
 
 # View the corpus
 inspect(Mycorpus[1:10])
 ```
 
+We take a look at the word cloud with the terms in the corpus.
 
 ```{r}
-# I don't think we need the dtm below
-#dtm <- DocumentTermMatrix(Mycorpus)
+#setting the same seed each time ensures consistent look across clouds
+set.seed(7)
 suppressWarnings(wordcloud(Mycorpus, random.order=F, scale=c(3, 0.5), min.freq = 5, col=rainbow(50)))
 
 ```
 
-#Sentiment Analysis
 
-Replace Twitter's texts in original data frame with the clean data from corpus.
+Because we need to tokenize the text for the analysis, we replace Twitter's texts in original data frame with the clean data from corpus.
 
 ```{r}
 # Original data frame
-head(Stream, n=10)
+head(Stream$results.text, n=10)
 
 # Clean corpus
 df <- data.frame(text = get("content", Mycorpus))
 head(df, n=10)
 
 Stream$results.text <- as.character(df$text)
+
+# Remove the rows that contain empty strings in the text column after the cleanup
+Stream <- Stream %>% filter(results.text !="")
+
+# Add row numbers and move to the front of the data frame
+Stream <- Stream %>% mutate(id = row_number()) %>% select(id, everything())
+
 head(Stream, n=10)
 
+# Tokenize the new clean text from the data frame
 Streamnew <- Stream %>%  
   unnest_tokens(word, results.text)
 
 ```
 
-Here is count of most frequest words, this is similar to what we are showing with a word cloud, so might not be needed.
+
+Looking back at the word cloud, it seems that the stop words from the tm package didn't filtered off all undesired words from the tweets.  So we continue the cleaning further using the stop words from tidytext package.
+
+```{r}
+# Remove stop words and other words
+data(stop_words)
+Streamnew <- Streamnew %>% anti_join(stop_words)
+```
+
+
+# Sentiment Analysis
+
+Here is the count of most frequest words, this is similar to what we are showing with a word cloud, so might not be needed.
 
 ```{r}
 Streamnew %>%
   count(word, sort = TRUE) %>%
-  top_n(15) %>%
+  top_n(20) %>%
   mutate(word = reorder(word, n)) %>%
   ggplot(aes(x = word, y = n)) +
   geom_col() +
@@ -352,7 +374,6 @@ Streamnew %>%
   labs(x = "Count",
        y = "Unique words",
        title = "Count of unique words found in tweets")
-## Selecting by n
 ```
 
 We are going to use the “bing” sentiment data which classifies words as positive or negative. We are joining the words extracted from the tweets with this sentiment data. 
@@ -363,12 +384,11 @@ bing_word_counts <- Streamnew %>%
   inner_join(get_sentiments("bing")) %>%
   count(word, sentiment, sort = TRUE) %>%
   ungroup()
-## Joining, by = "word"
 ```
 
 The code below creates a plot of positive and negative words. 
 
-```{r]
+```{r}
 bing_word_counts %>%
   group_by(sentiment) %>%
   top_n(10) %>%
@@ -377,29 +397,29 @@ bing_word_counts %>%
   ggplot(aes(word, n, fill = sentiment)) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~sentiment, scales = "free_y") +
-  labs(title = "Sentiment Primary Election Sentiment.",
+  labs(title = "Sentiment Midterm Election Sentiment.",
        y = "Contribution to sentiment",
        x = NULL) +
   coord_flip()
 ```
 
+
 Let's take a look at our results at different times as time passes.
 
 The code below adds a column to clasify tweets as "Early, Med, or Late"
 
-```{r]
+```{r}
 Streamnew$Timing <- ifelse(Streamnew$results.created_at <= '2018-11-07', 'Early',
                   ifelse(Streamnew$results.created_at >= '2018-11-07' & Streamnew$results.created_at <= '2018-11-08', 'Med',
                          ifelse(Streamnew$results.created_at >= '2018-11-08', 'Late', 'other')
                   ))
 ```
 
-The Code below joins our data frame with sentiment data and plots positive and negative words in those 3 timing categories.
+The code below joins our data frame with sentiment data and plots positive and negative words in those 3 timing categories.
 
 ```{r}
-
 # join sentiment classification to the tweet words
-Elec_sentiment_2013 <- Streamnew %>%
+Elec_sentiment_2018 <- Streamnew %>%
   inner_join(get_sentiments("bing")) %>%
   count(word, sentiment, Timing, sort = TRUE) %>%
   group_by(sentiment) %>%
@@ -408,25 +428,18 @@ Elec_sentiment_2013 <- Streamnew %>%
   group_by(Timing, sentiment) %>%
   top_n(n = 5, wt = n) %>%
   arrange(Timing, sentiment, n)
-## Joining, by = "word"
 
-Elec_sentiment_2013 %>%
+
+Elec_sentiment_2018 %>%
   ggplot(aes(word, n, fill = sentiment)) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~Timing, scales = "free_y", ncol = 2) +
-  labs(title = "Sentiment during the 2013 flood event by month.",
+  labs(title = "Sentiment during the 2018 Midterm Election - NY 11th Cong. District.",
        y = "Number of Times Word Appeared in Tweets",
        x = NULL) +
   coord_flip()
-
-
 ```
 
-# Sentiment Analysis
-
-Check packages SentimentAnalysis and sentimentr.
-Check this for a good and simple example of sentiment analysis
-<https://www.earthdatascience.org/courses/earth-analytics/get-data-using-apis/sentiment-analysis-of-twitter-data-r/>
 
 # Reference
 
@@ -434,4 +447,8 @@ Check this for a good and simple example of sentiment analysis
 
 * hupseb. "How to use premium API for the first time (beginner)?" Post #10, May 13, 2018. Twitter Developers Forums. <https://twittercommunity.com/t/how-to-use-premium-api-for-the-first-time-beginner/105346/10>
 
-* Hadley Wickham. "Best practices for API packages". Aug 20, 2017. R package httr Vignette. <https://cran.r-project.org/web/packages/httr/vignettes/api-packages.html>
+* Julia Silge and David Robinson. "Text Mining with R. A Tidy Approach." Sep 23, 2018. <https://www.tidytextmining.com/index.html>
+
+* Hadley Wickham. "Best practices for API packages." Aug 20, 2017. R package httr Vignette. <https://cran.r-project.org/web/packages/httr/vignettes/api-packages.html>
+
+
