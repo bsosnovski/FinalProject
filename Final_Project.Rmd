@@ -132,13 +132,13 @@ Requests for data will likely generate more data than can be returned in a singl
 
 The code below requests tweets which include the following search terms from 2018/11/05 to 2018/11/19:
 
-- #maxrose
+- "#maxrose"
 
-- #dandonovan
+- "#dandonovan"
 
-- @RepDanDonovan
+- "@RepDanDonovan"
 
-- @MaxRose4NY
+- "@MaxRose4NY"
 
 
 ```{r eval=FALSE}
