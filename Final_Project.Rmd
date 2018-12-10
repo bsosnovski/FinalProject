@@ -16,9 +16,10 @@ Using Twitter API for sentiment analysis on the 2018 midterm election results fo
 **Members:** B. Sosnovski, E. Azrilyan and R. Mercier
 
 **Motivation:** Sentiment analysis plays an important role during elections. Political strategists can use the public’s opinions, emotions, and attitudes to convert those into votes in 2020.
-Can we use the public’s sentiment to determine which political party has the upper hand in the next election?
 
-Data: To conduct our analysis we will harvest data using one of the Twitter's API. Data will be restricted to a certain date range for a particular election race. 
+Can we gauge the public’s sentiment related to the results of the midterm election to a particular?
+
+Data: To conduct our analysis we will harvest data using one of the Twitter's API. Data will be restricted to a certain date range for a NY's 11th Congressional District election race. 
 
 **Work Flow:** 
 
@@ -42,7 +43,7 @@ We also use the statistic TF-IDF (Term Frequency and Inverse Document Frequency)
 
 First we needed to obtain the Twitter Premium API access. The following steps were taken to set up a twitter account and be able to use the Twitter API.
 
-1. Created a twitter account.
+1. Created a Twitter account.
 2. Logged in with the twitter credentials on <https://dev.twitter.com/apps> and applied for a developer account.
 3. After receiving approval from Twitter, submitted an application to create new app, filled out the form and agreed to the terms.
 4. Created the Keys and Access Tokens.
@@ -85,9 +86,9 @@ Access_Secret <- api$access_token_secret
 
 # API Authentication
 
-We faced a challenge in this part of the project because much of the documentation available on how to access the Twitter APIs using R is about accessing the Twitter's Basic Search API (not the Premium Search API, which was launched in Nov 2017). The basic Twitter API only gives access to the previous 7 days of posted tweets. To conduct our analysis, we needed access to tweets posted earlier than prior 7 days.
+We faced a challenge in this part of the project because much of the documentation available on how to access the Twitter APIs using R is about accessing the Twitter's Basic Search API and not the Premium Search API, which was launched in Nov 2017 and is relatively new to the community. The basic Twitter API only gives access to the previous 7 days of posted tweets. To conduct our analysis, we needed access to tweets posted earlier than prior 7 days.
 
-The following chunk of code was retrieved from <https://twittercommunity.com/t/how-to-use-premium-api-for-the-first-time-beginner/105346/10>
+The following chunk of code was retrieved from <https://twittercommunity.com/t/how-to-use-premium-api-for-the-first-time-beginner/105346/10>. This was the only mention that we could find about this.
 
 ```{r eval=FALSE}
 # base64 encoding
