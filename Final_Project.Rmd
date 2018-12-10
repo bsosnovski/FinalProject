@@ -17,6 +17,7 @@ Using Twitter API for sentiment analysis on the 2018 midterm election results fo
 
 **Motivation:** Sentiment analysis plays an important role during elections. Political strategists can use the public’s opinions, emotions, and attitudes to convert those into votes in 2020.
 Can we use the public’s sentiment to determine which political party has the upper hand in the next election?
+
 Data: To conduct our analysis we will harvest data using one of the Twitter's API. Data will be restricted to a certain date range for a particular election race. 
 
 **Work Flow:** 
@@ -130,10 +131,15 @@ list_col <- function(df){
 Requests for data will likely generate more data than can be returned in a single response (our limit is up to 100 tweets in a single response). When a response is paginated, the API response will respond with a "Next" token specified in the body of the response that indicates whether any further pages are available. These "Next" page tokens can then be used to make further requests.The following function automates the API requests with or without pagination. 
 
 The code below requests tweets which include the following search terms from 2018/11/05 to 2018/11/19:
+
 - #maxrose
+
 - #dandonovan
+
 - @RepDanDonovan
+
 - @MaxRose4NY
+
 
 ```{r eval=FALSE}
 
@@ -197,6 +203,8 @@ request <- function(start_body,end_body){
 request(start_body = sbody,end_body = ebody)
 ```
 
+The screenshot below shows Twitter API in action, the following message appears for every page:
+
 ![](https://i.imgur.com/9Bv2WKc.png){ width=85% }
 
 The total number of files obtained from the Twitter API is 177.
@@ -249,7 +257,7 @@ str(Stream)
 ```
 
 
-For our analysis, we are interested in the tweets sent by people other than the candidates themselves. So we exclude the tweets from candidates' usernames.
+For our analysis, we are interested in the tweets sent by people other than the candidates themselves, so we exclude the tweets from candidates' usernames.
 
 ```{r}
 Stream <- Stream %>% filter(!results.user.name %in% c("Max Rose","Dan Donovan"))
@@ -556,7 +564,7 @@ print(tf_idf2, n=10)
 
 ```
 
-If the TD-IDF is closer to zero, it indicates that the word is extrememly common. Thus, the words "staten", "island" and "ny" are not so important for the whole corpus. On the other hand, the words with high TD-IDF are important. As one can see, they have high due to typos and concatenation of words together. Nevertheless, note that majority of them are included some of the most frequent positive terms of the sentiment analysis.
+If the TF-IDF is closer to zero, it indicates that the word is extrememly common. Thus, the words "staten", "island" and "ny" are not so important for the whole corpus. On the other hand, the words with high TD-IDF are important. As one can see, they have high due to typos and concatenation of words together. Nevertheless, note that majority of them are included some of the most frequent positive terms of the sentiment analysis.
 
 # Conclusions
 
