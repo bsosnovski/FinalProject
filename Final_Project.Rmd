@@ -23,11 +23,14 @@ Data: To conduct our analysis we will harvest data using one fo the Twitter's AP
 
 1. Fetch, clean and tokenize the data.
 2. Perform feature selection to keep only the tweets that are meaningful for the analysis.
-3. Classify results as positive or negative. At this phase of the project, we not sure yet what type of analysis to perform. A possible analysis that can be performed is one of the  following:
+3. Classify results as positive or negative.
 
-   + Counting and correlating pairs of words.
-   + Build predictive models using logistic regression to predict the probability of occurrence of an event.
-   + Probabilistic topic model using Latent Dirichlet Allocation (LDA) method to be applied for reading general tendency from Twitter posts or comments into certain topics that can be classified toward positive and negative sentiment.
+Our collection of texts from tweets can be divide into natural groups so that we can understand them separately. Topic modeling is a method for unsupervised classification of such documents, which finds natural groups of items. 
+
+We will perform a probabilistic topic model using Latent Dirichlet Allocation (LDA). LDA can be applied for reading general tendency from Twitter posts or comments into certain topics that can be classified toward positive and negative sentiment.
+
+We also use the statistic TD-IDF in our analysis, which attempts to find the words that are important (i.e., common) in a text, but not too common.
+
    
 **Tools:**
 
@@ -60,13 +63,14 @@ suppressMessages(library(RCurl))
 library(methods)
 suppressMessages(library(tm))
 suppressMessages(library(wordcloud))
+library(topicmodels)
 ```
 
 # API Credentials
 
 Read key, key secret, access token and and access token secret from a text file to mantain the information confidential.
 
-```{r eval=TRUE}
+```{r eval=FALSE}
 api <- read.table("Twitter_API_Key.txt", header = TRUE, stringsAsFactors = FALSE)
 names(api)
 dim(api)
@@ -80,9 +84,9 @@ Access_Secret <- api$access_token_secret
 
 # API Authentication
 
-We faced a chanllenge in this part of the project because much of the documentation available on how to access the Twitter APIs using R is about access the Twitter's Basic Search API (not the Premium Search API, which was launched in Nov 2017). The basic Twitter API only give access to the previous 7 days of posted tweets. To conduct our project, we needed access to tweets posted earlier than prior 7 days.
+We faced a challenge in this part of the project because much of the documentation available on how to access the Twitter APIs using R is about access the Twitter's Basic Search API (not the Premium Search API, which was launched in Nov 2017). The basic Twitter API only give access to the previous 7 days of posted tweets. To conduct our project, we needed access to tweets posted earlier than prior 7 days.
 
-The following two chunks of code were retrieved from <https://twittercommunity.com/t/how-to-use-premium-api-for-the-first-time-beginner/105346/10>
+The following chunk of code was retrieved from <https://twittercommunity.com/t/how-to-use-premium-api-for-the-first-time-beginner/105346/10>
 
 ```{r eval=FALSE}
 # base64 encoding
@@ -306,8 +310,6 @@ Mycorpus <- suppressWarnings(tm_map(Mycorpus, content_transformer(remove_IMs)))
 #stopwards
 Mycorpus <- suppressWarnings(tm_map(Mycorpus, removeWords,stopwords("English")))
 
-#dtm <- DocumentTermMatrix(Mycorpus)
-
 # View the corpus
 inspect(Mycorpus[1:10])
 ```
@@ -439,6 +441,111 @@ Elec_sentiment_2018 %>%
        x = NULL) +
   coord_flip()
 ```
+
+# Topic Modeling with LDA
+
+```{r}
+dtm <- DocumentTermMatrix(Mycorpus)
+dtm
+```
+
+The sparse matrix contain rows without entries(words) and this causes error in LDA function. 
+
+To deal with this issue, we compute the sum of words by row and subset the dtm matrix by rows with sum >0.
+
+```{r}
+rowTotals <- apply(dtm , 1, sum)
+dtm.new   <- dtm[rowTotals> 0, ]    
+dtm.new
+
+# Set a seed so that the output of the model is predictable
+# Model finds 10 topics
+lda <- LDA(dtm.new, k = 4, control = list(seed = 1234))
+lda
+
+term <- terms(lda, 10) # first 10 terms of every topic
+term
+
+topics <- tidy(lda, matrix = "beta")
+topics
+```
+
+In the table above, we see that the LDA model computes the probability of that term being generated from that topic. For example the term "followed" has probabilities 0.000152, 0.0000559, 0.000216 and 0.0000935 of being generated from topic 1, 2, 3 and 4, respectively.
+
+The following is a visualization of the results for the top 10 terms.
+
+```{r}
+top_terms <- topics %>%
+  group_by(topic) %>%
+  top_n(10, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip()
+```
+
+The four topics appear to be pretty similar. That is not  surprising given that there's a limited number of topics one would expect to see discussed in comments about the election results. 
+
+Note that some of the top frequent positive words from the sentiment analysis above such as "congratulations" and "proud" appear in most the topics. But none of the top negative words appear in the topics' lists.
+
+# Modeling with TF-IDF
+
+The statistic Term Frequency-Inverse Document Frequency (TF-IDF) measures how important a word is to a document in a corpus of documents, as in our case, to one tweet in a collection of tweets.
+
+TF-IDF in general finds:
+
+* Words that are very common in a specific document are probably important to the topic of that document.
+
+* Words that are very common in all documents probably aren't important to the topics of any of them.
+
+So a term will receive a high weight if it's common in a specific document and also uncommon across all documents.
+
+```{r}
+
+# get the count of each word in each individual tweet
+mywords <- Stream %>%  
+        unnest_tokens(word, results.text) %>% 
+        anti_join(stop_words) %>% 
+        count(id,word, sort = TRUE) %>% 
+        ungroup()
+
+# get the number of words per tweet
+total_words <- mywords %>% 
+      group_by(id) %>% 
+      summarize(total = sum(n))
+        
+# combine the two dataframes we just made
+mywords <- left_join(mywords, total_words)
+mywords
+
+# get the tf_idf & order the words by degree of relevence
+tf_idf1 <- mywords %>%
+      bind_tf_idf(word, id, n) %>%
+      select(-total) %>%
+      arrange(desc(tf_idf)) %>%
+      mutate(word = factor(word, levels = rev(unique(word))))
+
+tf_idf2 <- mywords %>%
+      bind_tf_idf(word, id, n) %>%
+      select(-total) %>%
+      arrange(tf_idf) %>%
+      mutate(word = factor(word, levels = rev(unique(word))))
+
+print(tf_idf1, n=10)
+
+print(tf_idf2, n=10)
+
+```
+
+If the TD-IDF is closer to zero, it indicates that the word is extrememly common. Thus, the words "staten", "island" and "ny" are not so important for the whole corpus. On the other hand, the words with high TD-IDF are important. As one can see, they have high due to typos and concatenation of words together. Nevertheless, note that majority of them are include some of the most frequent positive terms of the sentiment analysis.
+
+# Conclusions
+
 
 
 # Reference
