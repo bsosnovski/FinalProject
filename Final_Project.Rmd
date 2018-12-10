@@ -31,7 +31,7 @@ Our collection of texts from tweets can be divided into natural groups so that w
 
 We will perform a probabilistic topic model using Latent Dirichlet Allocation (LDA). LDA can be applied for reading general tendency from Twitter posts or comments into certain topics that can be classified toward positive and negative sentiment.
 
-We also use the statistic TF-IDF (Term Frequency and Inverse Document Frequency) in our analysis, which attempts to find the words that are important (i.e., common) in a text, but not too common.
+We also use the statistic Term Frequency-Inverse Document Frequency (TF-IDF) in our analysis, which attempts to find the words that are important (i.e., common) in a text, but not too common.
 
    
 **Tools:**
@@ -370,7 +370,6 @@ Streamnew <- Stream %>%
 
 ```
 
-
 Looking back at the word cloud, it seems that the stop words from the tm package didn't filtered off all undesired words from the tweets.  So we continue the cleaning further using the stop words from tidytext package.
 
 ```{r}
@@ -425,6 +424,7 @@ bing_word_counts %>%
   coord_flip()
 ```
 
+According to the sentiment  lexicon "bing", it seems that most of the words tend to be positive for the results of the election. 
 
 Let's take a look at how our results were impacted by time passing, we will take a look at our data at specific times.
 
@@ -565,11 +565,19 @@ print(tf_idf2, n=10)
 
 ```
 
-If the TF-IDF is closer to zero, it indicates that the word is extrememly common. Thus, the words "staten", "island" and "ny" are not so important for the whole corpus. On the other hand, the words with high TD-IDF are important. As one can see, they have high due to typos and concatenation of words together. Nevertheless, note that majority of them are included some of the most frequent positive terms of the sentiment analysis.
+If the TF-IDF is closer to zero, it indicates that the word is extremely common. Thus, the words "staten", "island" and "ny" are not so important for the whole corpus. On the other hand, the words with high TD-IDF are important. As one can see, they have high due to typos and concatenation of words together. Nevertheless, note that majority of them are included some of the most frequent positive terms of the sentiment analysis.
 
 # Conclusions
 
+The project's goal is to find out if people's feeling and/or opinions is  positive or negative. 
 
+According to the sentiment  lexicon "bing", it seems that most of the words overall tend to be positive for the results of the election. 
+
+The LDA analysis also seems to confirm this since the topics presented by the model present top frequent positive words as "congratulations" and "proud". But none of the top negative words appear among the topics from the tweets involvng the terms related to the election that were in the search.
+
+Finally the TF-IDF analysis shows that the important word, even though some are formed by concatenations, mostly present positive terms and scarcely negative term(s) as in "fake". 
+
+Overall the sentiment present in the tweets are in positive terms.
 
 # Reference
 
@@ -582,4 +590,6 @@ If the TF-IDF is closer to zero, it indicates that the word is extrememly common
 * Hadley Wickham. "Best practices for API packages." Aug 20, 2017. R package httr Vignette. <https://cran.r-project.org/web/packages/httr/vignettes/api-packages.html>
 
 * Leah Wasser, Carson Farmer. "Lesson 6. Sentiment Analysis of Colorado Flood Tweets in R"
-https://www.earthdatascience.org/courses/earth-analytics/get-data-using-apis/sentiment-analysis-of-twitter-data-r/
+<https://www.earthdatascience.org/courses/earth-analytics/get-data-using-apis/sentiment-analysis-of-twitter-data-r/>
+
+Rachael Tatman. "NLP in R: Topic Modelling." <https://www.kaggle.com/rtatman/nlp-in-r-topic-modelling>
