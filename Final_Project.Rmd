@@ -165,11 +165,11 @@ request <- function(start_body,end_body){
                         stop("API did not return json", call. = FALSE)}
                 
                 #checking if the resquest was successful
-                if (http_error(resTweets)) {
-                        stop(sprintf("Twitter API request failed! Status = %s. Check what went wrong.\n", 
-                                     status_code(resTweets)),
-                             call. = FALSE)}else{
-                                     message("Retrieving page ",pageNo)}
+                # if (http_error(resTweets)) {
+                #         stop(sprintf("Twitter API request failed! Status = %s. Check what went wrong.\n", 
+                #                      status_code(resTweets)),
+                #              call. = FALSE)}else{
+                #                      message("Retrieving page ",pageNo)}
                 
                 # Parse the data
                 tweets_df <- fromJSON(content(resTweets, "text"),flatten = TRUE) %>% data.frame()
@@ -565,7 +565,7 @@ print(tf_idf2, n=10)
 
 ```
 
-If the TF-IDF is closer to zero, it indicates that the word is extremely common. Thus, the words "staten", "island" and "ny" are not so important for the whole corpus. On the other hand, the words with high TD-IDF are important. As one can see, they have high due to typos and concatenation of words together. Nevertheless, note that majority of them are included some of the most frequent positive terms of the sentiment analysis.
+If the TF-IDF is closer to zero, it indicates that the word is extremely common. Thus, the words "staten", "island" and "ny" are not so important for the whole corpus. On the other hand, the words with high TD-IDF are important. As one can see, they have high TD-IDF due to typos and concatenation of words together. Nevertheless, note that majority of them are included some of the most frequent positive terms of the sentiment analysis.
 
 # Conclusions
 
@@ -592,4 +592,4 @@ Overall the sentiment present in the tweets are in positive terms.
 * Leah Wasser, Carson Farmer. "Lesson 6. Sentiment Analysis of Colorado Flood Tweets in R"
 <https://www.earthdatascience.org/courses/earth-analytics/get-data-using-apis/sentiment-analysis-of-twitter-data-r/>
 
-Rachael Tatman. "NLP in R: Topic Modelling." <https://www.kaggle.com/rtatman/nlp-in-r-topic-modelling>
+* Rachael Tatman. "NLP in R: Topic Modelling." <https://www.kaggle.com/rtatman/nlp-in-r-topic-modelling>
